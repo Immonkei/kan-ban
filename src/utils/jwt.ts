@@ -15,7 +15,7 @@ export function generateAccessToken(payload: JwtPayload) {
 
 export function generateRefreshToken(payload: JwtPayload) {
   return jwt.sign(payload, env.JWT_SECRET, {
-    expiresIn: "7d",
+    expiresIn: "1h",
   });
 }
 

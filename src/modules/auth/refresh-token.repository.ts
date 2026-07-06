@@ -6,6 +6,10 @@ class RefreshTokenRepository {
     userId: number,
     expiresAt: Date
   ) {
+    await prisma.refreshToken.deleteMany({
+      where: { userId },
+    });
+
     return prisma.refreshToken.create({
       data: {
         token,

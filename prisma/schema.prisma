@@ -3,8 +3,56 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model Board {
+  id        Int      @id @default(autoincrement())
+  name      String
+  ownerId   Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+}
+
+model Task {
+  id          Int          @id @default(autoincrement())
+  title       String
+  description String?
+  status      TaskStatus
+  priority    TaskPriority
+  dueDate     DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  boardId     Int
+  assigneeId  Int?
+  assignee    User?        @relation("AssignedTasks", fields: [assigneeId], references: [id])
+  board       Board        @relation(fields: [boardId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  name          String
+  email         String         @unique
+  password      String
+  role          Role           @default(USER)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  boards        Board[]
+  refreshTokens RefreshToken[]
+  assignedTasks Task[]         @relation("AssignedTasks")
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum TaskStatus {
@@ -24,62 +72,4 @@ enum Role {
   ADMIN
   MANAGER
   USER
-}
-
-model Board {
-  id        Int      @id @default(autoincrement())
-  name      String
-
-  ownerId   Int
-  owner     User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tasks Task[]
-}
-
-model Task {
-  id          Int          @id @default(autoincrement())
-  title       String
-  description String?
-  status      TaskStatus
-  priority    TaskPriority
-  dueDate     DateTime?
-
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-
-  boardId     Int
-  board        Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
-
-  assigneeId  Int?
-  assignee    User? @relation("AssignedTasks", fields: [assigneeId], references: [id])
-}
-
-model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String
-
-  role      Role     @default(USER)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  boards         Board[]
-  assignedTasks  Task[] @relation("AssignedTasks")
-  refreshTokens  RefreshToken[]
-}
-
-model RefreshToken {
-  id        Int      @id @default(autoincrement())
-  token     String   @unique
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }

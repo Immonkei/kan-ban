@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    container_name: pg-container
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: cHJvcGVyeW91bmdlcmV4YWN0bHlzaGFraW5nc2hvdG15c3RlcmlvdXNjdXN0b21zYmU=
+      POSTGRES_DB: kan-ban
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  pgdata:   

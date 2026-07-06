@@ -61,13 +61,18 @@ const createBoardTasksLoader = () =>
   });
 
 const createBoardOwnerLoader = () =>
-  new DataLoader<number, User | null>(async (boardIds) => {
-    const boards = await prisma.board.findMany({
-      where: { id: { in: boardIds as number[] } },
-      include: { owner: true },
+  new DataLoader<number, User | null>(async (ownerIds) => {
+    const users = await prisma.user.findMany({
+      where: {
+        id: {
+          in: ownerIds as number[],
+        },
+      },
     });
-    const boardMap = new Map(boards.map((b) => [b.id, b.owner]));
-    return boardIds.map((id) => boardMap.get(id) || null);
+
+    const userMap = new Map(users.map((user) => [user.id, user]));
+
+    return ownerIds.map((id) => userMap.get(id) ?? null);
   });
 
 const createTaskAssigneeLoader = () =>

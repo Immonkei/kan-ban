@@ -4,5 +4,3 @@ node_modules/
 dist/
 build/
 coverage/
-# Prisma SQLite database
-prisma/dev.dbsi

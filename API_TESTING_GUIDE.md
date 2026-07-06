@@ -9,11 +9,11 @@ Complete guide for testing the GraphQL Kanban Task Manager API.
 1. [Setup](#setup)
 2. [Authentication Flow](#authentication-flow)
 3. [Testing Tools](#testing-tools)
-4. [API Endpoints](#api-endpoints)
+4. [API Operations](#api-operations)
 5. [Sample Queries & Mutations](#sample-queries--mutations)
 6. [Testing Scenarios](#testing-scenarios)
 7. [Error Handling](#error-handling)
-8. [Performance Testing](#performance-testing)
+8. [Notes](#notes)
 
 ---
 
@@ -23,45 +23,66 @@ Complete guide for testing the GraphQL Kanban Task Manager API.
 
 - Node.js (latest LTS)
 - npm or yarn
-- SQLite (included with Prisma)
+- PostgreSQL
 
 ### Installation
 
 ```bash
 # Clone repository
 git clone <repo-url>
-cd kan-ban
+cd kan-ban/backend
 
 # Install dependencies
 npm install
+```
 
-# Setup environment
-# Create .env file with:
-# PORT=4000
-# DATABASE_URL="file:./dev.db"
-# JWT_SECRET=your_secret_key_must_be_at_least_32_characters
+### Environment
 
-# Initialize database
-npx prisma migrate dev
+Create a `.env` file at the project root:
 
-# Start the server
+```env
+PORT=4000
+DATABASE_URL="postgresql://user:password@localhost:5432/kan-ban?schema=public"
+JWT_SECRET=your-secure-secret-with-at-least-32-characters
+```
+
+### Database setup
+
+```bash
+npm run db:generate
+npm run db:migrate
+```
+
+If a seed file is configured, use:
+
+```bash
+npx prisma db seed
+```
+
+### Run the server
+
+```bash
 npm run dev
 ```
 
-The API will be available at: **http://localhost:4000/graphql**
+The GraphQL endpoint is available at:
+
+```text
+http://localhost:4000/graphql
+```
 
 ---
 
 ## Authentication Flow
 
-### Step 1: Register User
+### Register
 
 ```graphql
 mutation Register {
   register(input: {
+    name: "John Doe"
     email: "user@example.com"
     password: "SecurePassword123!"
-    name: "John Doe"
   }) {
     accessToken
     refreshToken
@@ -75,25 +96,7 @@ mutation Register {
 }
 ```
 
-**Response:**
-```json
-{
-  "data": {
-    "register": {
-      "accessToken": "eyJhbGc...",
-      "refreshToken": "eyJhbGc...",
-      "user": {
-        "id": "1",
-        "email": "user@example.com",
-        "name": "John Doe",
-        "role": "USER"
-      }
-    }
-  }
-}
-```
-
-### Step 2: Login
+### Login
 
 ```graphql
 mutation Login {
@@ -113,14 +116,15 @@ mutation Login {
 }
 ```
 
-### Step 3: Use Access Token
+### Set authorization header
 
 Add to request headers:
-```
+
+```http
 Authorization: Bearer <accessToken>
 ```
 
-### Step 4: Refresh Token (After 15 minutes)
+### Refresh access token
 
 ```graphql
 mutation RefreshToken {
@@ -130,11 +134,14 @@ mutation RefreshToken {
 }
 ```
 
-### Step 5: Logout
+### Logout
 
 ```graphql
 mutation Logout {
-  logout
+  logout {
+    success
+    message
+  }
 }
 ```
 
@@ -142,121 +149,263 @@ mutation Logout {
 
 ## Testing Tools
 
-### Using Apollo GraphQL Explorer (Browser)
+### Apollo GraphQL Explorer
 
-1. Navigate to: `http://localhost:4000/graphql`
-2. Click "Headers" button
-3. Add authorization header:
+1. Open: `http://localhost:4000/graphql`
+2. Add the `Authorization` header:
    ```json
    {
      "Authorization": "Bearer YOUR_ACCESS_TOKEN"
    }
    ```
-4. Write and execute queries/mutations
+3. Execute queries and mutations.
 
-### Using cURL
+### cURL
 
 ```bash
 curl -X POST http://localhost:4000/graphql \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -d '{
-    "query": "{ me { id email name role } }"
-  }'
+  -d '{"query":"{ me { id email name role } }"}'
 ```
 
-### Using Postman
+### Postman
 
-1. Create new request
-2. Set method to POST
-3. URL: `http://localhost:4000/graphql`
-4. Headers tab: Add `Content-Type: application/json`
-5. Headers tab: Add `Authorization: Bearer YOUR_ACCESS_TOKEN`
-6. Body (raw, JSON): Paste GraphQL query
-7. Click Send
+1. Create new POST request
+2. URL: `http://localhost:4000/graphql`
+3. Add headers:
+   - `Content-Type: application/json`
+   - `Authorization: Bearer YOUR_ACCESS_TOKEN`
+4. Use raw JSON body with your GraphQL query.
 
-### Using GraphQL Client Libraries
+### GraphQL client example
 
 ```javascript
-// With Apollo Client (JavaScript)
+import { ApolloClient, InMemoryCache } from '@apollo/client';
+
 const client = new ApolloClient({
   uri: 'http://localhost:4000/graphql',
+  cache: new InMemoryCache(),
   headers: {
-    Authorization: `Bearer ${accessToken}`
-  }
+    Authorization: `Bearer ${accessToken}`,
+  },
 });
 ```
 
 ---
 
-## API Endpoints
+## API Operations
 
 ### Authentication
 
-- **POST** `/graphql`
-  - `register(input)` - Create new user
-  - `login(input)` - Authenticate user
-  - `logout` - Invalidate refresh tokens
-  - `refreshToken(token)` - Get new access token
+- `register(input)` - Create a new user
+- `login(input)` - Authenticate a user
+- `logout` - Invalidate the current refresh token(s)
+- `refreshToken(token)` - Request a new access token
 
-### Users
+### User operations
 
-- `users` - List all users (RBAC)
-- `user(id)` - Get user by ID
-- `me` - Get current user profile
-- `updateUser(id, input)` - Update user
-- `deleteUser(id)` - Delete user
+- `me` - Get authenticated user information
+- `users` - List users (RBAC-protected)
+- `user(id)` - Get a user by ID
+- `updateUser(id, input)` - Update user fields
+- `deleteUser(id)` - Delete a user
 
-### Boards
+### Board operations
 
-- `boards` - List boards (RBAC)
+- `boards` - List accessible boards
 - `board(id)` - Get board details
-- `createBoard(input)` - Create new board
-- `updateBoard(id, input)` - Update board
-- `deleteBoard(id)` - Delete board
+- `createBoard(input)` - Create a board
+- `updateBoard(id, input)` - Update a board
+- `deleteBoard(id)` - Delete a board
 
-### Tasks
+### Task operations
 
-- `tasks(filter)` - List tasks with filtering
+- `tasks(filter)` - List tasks with filtering, pagination, and sorting
 - `task(id)` - Get task details
-- `createTask(input)` - Create new task
-- `updateTask(id, input)` - Update task
-- `deleteTask(id)` - Delete task
+- `createTask(input)` - Create a task
+- `updateTask(id, input)` - Update a task
+- `deleteTask(id)` - Delete a task
 - `updateTaskStatus(id, status)` - Change task status
-- `assignTask(taskId, userId)` - Assign task to user
+- `assignTask(taskId, userId)` - Assign a task to a user
 
 ---
 
 ## Sample Queries & Mutations
 
-### 1. Get Current User
+### Current user
 
 ```graphql
-query GetCurrentUser {
+query Me {
   me {
     id
-    email
     name
+    email
     role
   }
 }
 ```
 
-### 2. List All Users
+### List users
 
 ```graphql
-query ListUsers {
+query Users {
   users {
     id
-    email
     name
+    email
     role
-    createdAt
   }
 }
 ```
 
-### 3. Create Board
+### List boards
+
+```graphql
+query Boards {
+  boards {
+    id
+    name
+    owner {
+      id
+      email
+    }
+    tasks {
+      id
+      title
+    }
+  }
+}
+```
+
+### List tasks
+
+```graphql
+query Tasks {
+  tasks(filter: { page: 1, limit: 10 }) {
+    data {
+      id
+      title
+      status
+      priority
+      dueDate
+    }
+    total
+    page
+    limit
+    totalPages
+  }
+}
+```
+
+### Create board
+
+```graphql
+mutation CreateBoard {
+  createBoard(input: { name: "New Board" }) {
+    id
+    name
+  }
+}
+```
+
+### Create task
+
+```graphql
+mutation CreateTask {
+  createTask(input: {
+    boardId: 1
+    title: "New Task"
+    description: "Task details"
+    status: TODO
+    priority: MEDIUM
+    dueDate: "2026-08-01"
+  }) {
+    id
+    title
+    status
+    priority
+  }
+}
+```
+
+### Update task status
+
+```graphql
+mutation UpdateTaskStatus {
+  updateTaskStatus(id: 1, status: IN_PROGRESS) {
+    id
+    status
+  }
+}
+```
+
+### Assign task
+
+```graphql
+mutation AssignTask {
+  assignTask(taskId: 1, userId: 2) {
+    id
+    assignee {
+      id
+      email
+    }
+  }
+}
+```
+
+---
+
+## Testing Scenarios
+
+- Validate registration and login flows
+- Confirm protected queries work with `Authorization` header
+- Ensure RBAC restrictions are enforced
+- Validate board ownership and access rules
+- Validate task CRUD operations and list filtering
+- Confirm refresh token renewal works
+- Confirm logout invalidates refresh tokens
+
+---
+
+## Error Handling
+
+- GraphQL errors are returned in the `errors` array
+- Validation failures come from Zod schemas
+- Auth failures return relevant application error codes
+
+Example error response:
+
+```json
+{
+  "errors": [
+    {
+      "message": "Invalid email or password",
+      "extensions": {
+        "code": "BAD_REQUEST"
+      }
+    }
+  ]
+}
+```
+
+---
+
+## Notes
+
+- The backend uses PostgreSQL, not SQLite.
+- Authentication uses JWT tokens in `Authorization: Bearer <token>`.
+- The login and register mutations require the `input` argument.
+- A seed script exists for demo users:
+  - `admin@test.com` / `Password123`
+  - `manager1@test.com`–`manager3@test.com` / `Password123`
+  - `user1@test.com`–`user16@test.com` / `Password123`
+- Run tests with:
+
+```bash
+npm test -- --runInBand
+```
+
 
 ```graphql
 mutation CreateBoard {

@@ -1,12 +1,11 @@
 # Kanban Task Manager Backend
 
-A production-oriented GraphQL backend for a Kanban Task Manager built
-with TypeScript, Express, Apollo Server, Prisma ORM, and SQLite.
+A GraphQL backend for a Kanban task manager built with TypeScript,
+Express, Apollo Server, Prisma ORM, and PostgreSQL.
 
-This project follows a modular architecture with clear separation
-between GraphQL resolvers, business logic, validation, and database
-access. It is designed as a learning project while following
-production-ready development practices.
+This repository uses a modular architecture with clear separation
+between GraphQL schema/resolvers, business services, validation,
+and database access.
 
 ------------------------------------------------------------------------
 
@@ -14,77 +13,92 @@ production-ready development practices.
 
 ## Authentication
 
--   JWT Authentication
--   User Registration
--   User Login
--   Password Hashing (bcrypt)
--   Current User (`me`)
--   Protected GraphQL Operations
--   Role-Based Access Control (RBAC)
+- JWT-based authentication
+- User registration
+- User login
+- Password hashing with bcrypt
+- `me` query for current authenticated user
+- Protected GraphQL operations
+- Role-Based Access Control (RBAC)
 
 ## User Management
 
--   Create User
--   Update User
--   Delete User
--   List Users
--   Get User by ID
+- List users
+- Get user by ID
+- Update user
+- Delete user
 
 ## Board Management
 
--   Create Board
--   Update Board
--   Delete Board
--   List Boards
--   Board Ownership
+- Create board
+- Update board
+- Delete board
+- List accessible boards
+- Board ownership enforcement
 
 ## Task Management
 
--   Create Task
--   Update Task
--   Delete Task
--   Task Status
--   Task Priority
--   Due Date
--   Assign Task to User
--   Pagination, Filtering, Sorting (GraphQL TaskConnection)
+- Create task
+- Update task
+- Delete task
+- Task status management
+- Task priority management
+- Due date support
+- Assign task to user
+- Task pagination, filtering, and sorting through GraphQL connection
 
-## Validation
+## Validation and Error Handling
 
--   Zod Validation
--   GraphQL error mapping
--   Error Handling
+- Zod schema validation for input data
+- Consistent GraphQL error mapping
+- Custom application errors
 
 ------------------------------------------------------------------------
 
 # Tech Stack
 
--   Node.js
--   TypeScript
--   Express
--   Apollo Server
--   GraphQL
--   Prisma ORM
--   SQLite
--   JWT
--   bcrypt
--   Zod
+- Node.js
+- TypeScript
+- Express
+- Apollo Server
+- GraphQL
+- Prisma ORM
+- PostgreSQL
+- JWT
+- bcrypt
+- Zod
+- Jest
+- Supertest
 
 ------------------------------------------------------------------------
 
 # Project Structure
 
-    src/
-    ├── config/
-    ├── graphql/
-    ├── modules/
-    │   ├── auth/
-    │   ├── user/
-    │   ├── board/
-    │   └── task/
-    ├── utils/
-    ├── app.ts
-    └── server.ts
+```text
+src/
+├── config/
+│   ├── env.ts
+│   └── prisma.ts
+├── graphql/
+│   ├── base.schema.ts
+│   ├── context.ts
+│   ├── resolvers.ts
+│   └── typeDefs.ts
+├── modules/
+│   ├── auth/
+│   ├── board/
+│   ├── task/
+│   └── user/
+├── tests/
+│   ├── auth.test.ts
+│   ├── boards.test.ts
+│   ├── tasks.test.ts
+│   ├── users.test.ts
+│   └── setup.ts
+├── utils/
+├── app.ts
+└── server.ts
+```
 
 ------------------------------------------------------------------------
 
@@ -94,108 +108,138 @@ GraphQL Request → Resolver → Service → Repository → Prisma → Database
 
 ------------------------------------------------------------------------
 
-## Setup Process
+## Setup
 
-### 1. Clone repository
+### 1. Install dependencies
 
-``` bash
-git clone <repo-url>
-cd kanban-task-manager
-```
-
-### 2. Install dependencies
-
-``` bash
+```bash
 npm install
 ```
 
-### 3. Setup environment variables
+### 2. Create environment variables
 
-Create `.env` file:
+Create a `.env` file at the repository root with:
 
-``` env
+```env
 PORT=4000
-DATABASE_URL="file:./dev.db"
-JWT_SECRET=your_secret_key_must_be_at_least_32_characters
+DATABASE_URL="postgresql://admin:cHJvcGVyeW91bmdlcmV4YWN0bHlzaGFraW5nc2hvdG15c3RlcmlvdXNjdXN0b21zYmU=@localhost:5432/kan-ban?schema=public"
+JWT_SECRET=your-secure-32-char-minimum-secret
 ```
 
-### 4. Prisma setup
+### 3. Optional: Run with Docker
 
-``` bash
-npx prisma generate
-npx prisma migrate dev
+If you prefer Docker, start the PostgreSQL service with:
+
+```bash
+docker-compose up -d
 ```
 
-### 5. Run project
+This project includes a `docker-compose.yml` that starts PostgreSQL on port `5432` with the following database settings:
 
-``` bash
+- user: `admin`
+- password: `cHJvcGVyeW91bmdlcmV4YWN0bHlzaGFraW5nc2hvdG15c3RlcmlvdXNjdXN0b21zYmU=`
+- database: `kan-ban`
+
+Then use the same `.env` values above to connect the app to the Docker database.
+
+### 4. Generate Prisma client
+
+```bash
+npm run db:generate
+```
+
+### 4. Run database migrations
+
+```bash
+npm run db:migrate
+```
+
+### 5. Start the application
+
+```bash
 npm run dev
 ```
 
-### 6. Run tests
+The GraphQL endpoint will be available at:
 
-``` bash
-npm test -- tests/task.service.test.ts
+```text
+http://localhost:4000/graphql
 ```
 
 ------------------------------------------------------------------------
 
-# GraphQL Features
+## Testing
+
+The backend includes integration-style tests under `src/tests`.
+The test helper boots the Apollo GraphQL schema in-process so tests
+can run without a separate server process.
+
+Run the test suite with:
+
+```bash
+npm test -- --runInBand
+```
+
+------------------------------------------------------------------------
+
+# GraphQL API
 
 ## Queries
 
--   tasks (filter, pagination, sorting)
--   task(id)
--   boards
--   users
--   me
+- `me`
+- `users`
+- `boards`
+- `board(id: ID!)`
+- `tasks(filter: TaskFilterInput)`
+- `task(id: ID!)`
 
 ## Mutations
 
--   createTask
--   updateTask
--   deleteTask
--   updateTaskStatus
--   assignTask
--   createBoard
--   updateBoard
--   deleteBoard
--   register
--   login
--   logout
+- `register(input: RegisterInput!)`
+- `login(input: LoginInput!)`
+- `logout`
+- `refreshToken(token: String!)`
+- `createBoard(input: CreateBoardInput!)`
+- `updateBoard(id: ID!, input: UpdateBoardInput!)`
+- `deleteBoard(id: ID!)`
+- `createTask(input: CreateTaskInput!)`
+- `updateTask(id: ID!, input: UpdateTaskInput!)`
+- `deleteTask(id: ID!)`
+- `updateTaskStatus(id: ID!, status: TaskStatus!)`
+- `assignTask(taskId: ID!, userId: ID!)`
 
 ------------------------------------------------------------------------
 
-# Authentication Flow
+# Authentication and Authorization
 
-Client → JWT → Middleware → Context → Resolver → Service
-
-------------------------------------------------------------------------
-
-# Authorization
-
-Roles: - ADMIN - MANAGER - USER
-
-Helpers: - requireAuth - requireRole
+- Uses JWT tokens in the `Authorization: Bearer <token>` header.
+- Protected resolvers validate the current user in context.
+- `requireRole` enforces ADMIN/MANAGER access where needed.
 
 ------------------------------------------------------------------------
 
 # Database
 
-Entities: - User - Board - Task
+Models:
 
-Relations: - User → Boards - User → Assigned Tasks - Board → Tasks -
-Task → Board + Assignee
+- `User`
+- `Board`
+- `Task`
+- `RefreshToken`
+
+Relationships:
+
+- User owns boards
+- User can be assigned tasks
+- Board contains tasks
+- Task belongs to a board
 
 ------------------------------------------------------------------------
 
-# Development Workflow
+# Notes
 
-1.  Prisma Schema Update
-2.  Migration
-3.  Generate Client
-4.  Repository Layer
-5.  Service Layer
-6.  Resolver Layer
-7.  GraphQL Schema Update
-8.  Testing in Apollo Sandbox
+- The current test configuration uses `ts-jest` with a CommonJS transform
+  for TypeScript test files.
+- GraphQL input shapes require mutations to use `input: { ... }`,
+  e.g. `login(input: { email: "...", password: "..." })`.
+- JWT refresh tokens are persisted in the database and replaced on each login.

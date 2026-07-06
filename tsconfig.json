@@ -8,6 +8,7 @@
     "outDir": "./dist",
 
     "strict": true,
+    "isolatedModules": true,
 
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -18,7 +19,7 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
 
-    "types": ["node"]
+    "types": ["node","jest"]
   },
 
   "include": ["src"]
