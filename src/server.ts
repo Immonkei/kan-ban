@@ -10,12 +10,11 @@ import { createContext } from "./graphql/context.js";
 import { resolvers } from "./graphql/resolvers.js";
 import { typeDefs } from "./graphql/typeDefs.js";
 import { AppError } from "./utils/errors.js";
+import { schema } from "./graphql/schema.js";
 
 const startServer = async () => {
   const server = new ApolloServer({
-    typeDefs,
-    resolvers,
-
+    schema,
     formatError(formattedError, error) {
       const originalError = unwrapResolverError(error);
 

@@ -1,50 +1,41 @@
-import taskService from "./task.service.js";
 import taskRepository from "./task.repository.js";
+import taskService from "./task.service.js";
+
+import type { Resolvers } from "../../generated/resolvers.js";
 
 import {
   requireAuth,
   requireRole,
 } from "../../utils/auth.js";
 
-import { ForbiddenError, NotFoundError } from "../../utils/errors.js";
-import type { GraphQLContext } from "../../graphql/context.js";
-
-import type {
-  CreateTaskArgs,
-  DeleteTaskArgs,
-  GetTaskArgs,
-  UpdateTaskArgs,
-  UpdateTaskStatusArgs,
-} from "./dto/task.dto.js";
+import {
+  ForbiddenError,
+  NotFoundError,
+} from "../../utils/errors.js";
 
 import type { TaskFilter } from "./task.types.js";
 
-export const taskResolvers = {
+export const taskResolvers: Pick<
+  Resolvers,
+  "Query" | "Mutation" | "Task"
+> = {
   Query: {
-    tasks: (
-      _parent: unknown,
-      { filter }: { filter?: TaskFilter },
-      context: GraphQLContext
-    ) => {
+    tasks: (_parent, { filter }, context) => {
       const user = requireAuth(context);
 
       return taskRepository.findAllAccessible(
         user.id,
         user.role,
-        filter ?? {}
+        (filter ?? {}) as TaskFilter
       );
     },
 
-    task: async (
-      _parent: unknown,
-      { id }: GetTaskArgs,
-      context: GraphQLContext
-    ) => {
+    task: async (_parent, { id }, context) => {
       const user = requireAuth(context);
 
       const task =
         await taskRepository.findAccessibleById(
-          Number(id),
+          id,
           user.id,
           user.role
         );
@@ -55,25 +46,16 @@ export const taskResolvers = {
 
       return task;
     },
-
   },
 
   Mutation: {
-    createTask: (
-      _parent: unknown,
-      { input }: CreateTaskArgs,
-      context: GraphQLContext
-    ) => {
+    createTask: (_parent, { input }, context) => {
       requireRole(context, ["ADMIN", "MANAGER"]);
 
       return taskService.createTask(input);
     },
 
-    updateTask: (
-      _parent: unknown,
-      { id, input }: UpdateTaskArgs,
-      context: GraphQLContext
-    ) => {
+    updateTask: (_parent, { id, input }, context) => {
       const user = requireAuth(context);
 
       if (
@@ -86,28 +68,24 @@ export const taskResolvers = {
       }
 
       return taskService.updateTask(
-        Number(id),
+        id,
         input,
         user
       );
     },
 
-    deleteTask: async (
-      _parent: unknown,
-      { id }: DeleteTaskArgs,
-      context: GraphQLContext
-    ) => {
+    deleteTask: async (_parent, { id }, context) => {
       requireRole(context, ["ADMIN"]);
 
-      await taskService.deleteTask(Number(id));
+      await taskService.deleteTask(id);
 
       return true;
     },
 
     updateTaskStatus: (
-      _parent: unknown,
-      { id, status }: UpdateTaskStatusArgs,
-      context: GraphQLContext
+      _parent,
+      { id, status },
+      context
     ) => {
       const user = requireAuth(context);
 
@@ -121,21 +99,15 @@ export const taskResolvers = {
       }
 
       return taskService.updateStatus(
-        Number(id),
+        id,
         status
       );
     },
 
     assignTask: (
-      _parent: unknown,
-      {
-        taskId,
-        userId,
-      }: {
-        taskId: string;
-        userId: string;
-      },
-      context: GraphQLContext
+      _parent,
+      { taskId, userId },
+      context
     ) => {
       const user = requireRole(context, [
         "ADMIN",
@@ -143,18 +115,22 @@ export const taskResolvers = {
       ]);
 
       return taskService.assignTask(
-        Number(taskId),
-        Number(userId),
+        taskId,
+        userId,
         user
       );
     },
   },
 
   Task: {
-    board: (parent: { boardId: number }, _args: unknown, context: GraphQLContext) =>
-      context.loaders.boardLoader.load(parent.boardId),
+    board: (parent, _args, context) =>
+      context.loaders.boardLoader.load(
+        parent.boardId
+      ),
 
-    assignee: (parent: { assigneeId: number | null }, _args: unknown, context: GraphQLContext) =>
-      context.loaders.taskAssigneeLoader.load(parent.assigneeId),
+    assignee: (parent, _args, context) =>
+      context.loaders.taskAssigneeLoader.load(
+        parent.assigneeId
+      ),
   },
 };
