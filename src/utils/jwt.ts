@@ -19,10 +19,6 @@ export function generateRefreshToken(payload: JwtPayload) {
   });
 }
 
-export function generateToken(payload: JwtPayload) {
-  return generateAccessToken(payload);
-}
-
 export function verifyToken(token: string) {
   return jwt.verify(token, env.JWT_SECRET) as JwtPayload;
 }

@@ -25,7 +25,7 @@ const IDScalar = new GraphQLScalarType({
 });
 
 export const resolvers = [
-  { ID: IDScalar } as any,
+  { ID: IDScalar },
   taskResolvers,
   boardResolvers,
   userResolvers,
